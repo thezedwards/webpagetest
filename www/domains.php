@@ -336,7 +336,7 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
 				console.log(toggled);
 			} else {
 				// double-click on node
-				window.location.href=window.location.href.replace('domains','details')+'#step1_request'+(params['nodes'][0]);
+				window.location.href=window.location.href.replace('domains','details')+'#step1_request'+(params['nodes'][0]+1);
 			}
 		});
 		</script>
