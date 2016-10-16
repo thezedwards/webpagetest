@@ -199,6 +199,12 @@ class TestStepResult {
                                    $addLocationData, $addRawHeaders);
     return new RequestsWithInfo($requests, $haveLocations, $secure);
   }
+  
+  public function getRequestMap() {
+    $requests = getRequestsForStep($this->localPaths, $this->createUrlGenerator(""), $secure, $haveLocations, false, true);
+    return new RequestMap($requests);
+  }
+  
 
   public function getRequests() {
     // TODO: move implementation to this method
@@ -337,6 +343,97 @@ class TestStepResult {
   private function standardEventName() {
     return "Step " . $this->step;
   }
+}
+
+class RequestMap {
+  private $requests;
+  private $redirects = array();
+  public $edges = array();
+  public $nodes = array();
+
+  public function __construct($requests) {
+    $this->requests = $requests;
+    $this->getNodes();
+    $this->getEdges();
+  }
+  private function getInitiator($request) {
+	  $initiator = array(
+		'url' => null,
+		'type' => null,
+	  );
+	  if (isset($this->redirects[$request['full_url']])) {
+		  $initiator['url'] = $this->redirects[$request['full_url']];
+		  $initiator['type'] = 'redirect';
+	  } else {
+		  if (isset($request['initiator'])) {
+			  $initiator['url'] = $request['initiator'];
+		  }
+
+		  if (isset($request['initiator_type'])) {
+			  $initiator['type'] = $request['initiator_type'];
+		  }
+	  }
+	  return $initiator;
+  }
+  
+  private function getNodes() {
+	  foreach ($this->requests as $request) {
+		  $temp = array();
+		  $temp['url'] = $request['url'];
+		  $temp['host'] = $request['host'];
+		  $temp['full_url'] = $request['full_url'];
+		  $temp['objectSize'] = $request['objectSize'];
+		  $temp['ttfb_ms'] = $request['ttfb_ms'];
+		  $temp['load_ms'] = $request['load_ms'];
+		  $temp['responseCode'] = $request['responseCode'];
+		  $temp['contentType'] = $request['contentType'];
+		  $temp['download_start'] = $request['download_start'];
+		  $temp['download_end'] = $request['download_end'];
+		  $temp['initiator'] = $this->getInitiator($request);
+		  if (substr($request['responseCode'],0,1)=="3") {
+			  // Redirect! Iterate over response headers
+			  foreach ($request['headers']['response'] as $header) {
+				  // find the location header  
+				  if (strtolower(substr($header,0,9))=="location:") {
+					  // get the location
+					  $location = substr($header,10,strlen($header));
+					  $this->redirects[$location]=$request['full_url'];
+				  }
+			  }
+		  }
+		  
+		  $this->nodes[] = $temp; 
+	  }
+  }
+
+  private function getEdges() {
+	  /* edges are from a node id to a node id.
+	   * type is the type of initiator of the second node
+	   */
+	   
+	   /* loop through the to nodes */
+	  foreach ($this->nodes as $to_id => $to_node) {
+		  if ($to_node['initiator']['type']==null) continue;
+		  $edge = array(
+			  'from' => 0,
+			  'to' => $to_id,
+			  'type' => 'other',
+		  );
+		  
+		  $num_nodes = count($this->nodes);
+		  /* loop through the to nodes */
+		  foreach ($this->nodes as $fm_id => $fm_node) {
+			  if ($to_node['initiator']['url'] == $fm_node['full_url']) {
+				  $edge['from'] = $fm_id;
+				  $edge['type'] = $to_node['initiator']['type'];
+				  break;
+			  }
+		  }
+		  $this->edges[] = $edge;
+		  
+	  }
+  }
+	
 }
 
 class RequestsWithInfo {

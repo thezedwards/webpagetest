@@ -68,10 +68,37 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
             .breakdownFramePies td {
               padding: 0;
             }
+            .requestMap-container {
+				background-color: white;
+				width: 100%;
+				height: 480px;
+			}
+            .requestMap-container.fullscreen {
+				position: fixed;
+				top: 0;
+				right: 0;
+				bottom: 0;
+				left: 0;
+				height:100vh;
+				z-index:999;
+			}
+            .vis-network-tooltip {		
+				font-family: Century Gothic,sans-serif !IMPORTANT;
+			}
+			table.ttip {
+				border-spacing: 0;
+				border-collapse: collapse;
+			}
+			table.ttip td {
+				text-align:left;
+				padding:2px;
+			}
             <?php
             include __DIR__ . "/css/accordion.css";
             ?>
-        </style>
+			</style>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.min.css">
+		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.min.js"></script>
     </head>
     <body>
         <div class="page">
@@ -101,6 +128,14 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
               echo "</table>\n<br>\n";
             }
             ?>
+            
+            <h1>Request Map of domains (First View)</h1>
+            <div class="requestMap-container" id="requestmap_fv_step_1">
+				<div class="requestMap-container" id="requestmap_visjs">
+					<p style="text-align:center; margin-top:200px;">Working magic on the request map. This could take a few seconds...</p>
+				</div>
+            </div>
+            
             <h1>Content breakdown by domain (First  View)</h1>
             <?php
               if ($isMultistep) {
@@ -216,5 +251,94 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
             pieBytes.draw(bytes, {width: 450, height: 300, title: 'Bytes'});
         }
         </script>
+        <script>
+        <?php 
+			/* array_keys($node) = url, host, full_url, objectSize, ttfb_ms, load_ms, responseCode, contentType, download_start, download_end, initiator*/
+			$requestMap = $firstViewResults->getStepResult(1)->getRequestMap();
+			
+			$txtNodes = "// create node array\nvar nodes = [\n";
+			foreach ($requestMap->nodes as $id => $node) {
+				$label = $node['host'];
+				$size = 5 + (int)(($node['objectSize']/10000));
+				$group = $node['contentType'];
+				$title = "<p>$label</p><p>".$node['responseCode']."<\/p>";
+				$file = array_pop(explode('/',$node['url']));
+				
+				$title = "<b>$file<\/b><p><table class=\'ttip\'><tr><td>Content Type:<\/td><td>".$node['contentType']."<\/td><\/tr><tr><td>Status Code:<\/td><td><b>".$node['responseCode']."<\/b><\/td><\/tr><tr><td>Size:<\/td><td>".$node['objectSize']."kB<\/td><\/tr><tr><td>TTFB:<\/td><td>".$node['ttfb_ms']."ms<\/td><\/tr><tr><td>Load Time:<\/td><td>".$node['load_ms']."ms<\/td><\/tr><\/table><\/p><p>(double-click to view object details)<\/p>";
+				
+				$txtNodes .= "\n{id: $id, label: '$label', size: $size, group: '$group', title:'$title'},";
+
+			}
+            
+			$txtNodes = rtrim($txtNodes,',');
+			$txtNodes .= "];\n";
+			echo $txtNodes;
+			
+			$txtNodes = "// create edge array\nvar edges = [\n";
+			foreach ($requestMap->edges as $edge) {
+				$from = $edge['from'];
+				$to = $edge['to'];
+				$length = 1+(int)($requestMap->nodes[$to]['ttfb_ms']/10);
+				
+				$txtNodes .= "\n{from: $from, to: $to, length: $length},";
+			}
+			$txtNodes = rtrim($txtNodes,',');
+			$txtNodes .= "];\n";
+			echo $txtNodes;
+			
+		?>
+		var container = document.getElementById('requestmap_visjs');
+		var data = { nodes: nodes, edges: edges };
+		var options = {
+			nodes: {
+				shape: 'dot',
+				size: 4,
+				borderWidthSelected: 5
+			},
+			edges: {
+				arrows: {
+					middle: {
+						enabled: true,
+						scaleFactor: 0.5
+					}
+				},
+				dashes: false,
+				hoverWidth: 2,
+				selectionWidth: 5,
+				font: {
+					align: 'bottom'
+				}
+			},
+			interaction: {
+				navigationButtons: true,
+				keyboard: true
+			},
+			physics: {
+				repulsion: {
+					centralGravity: 0
+				},
+				solver: 'repulsion',
+				stabilization: {
+					iterations: 100
+				}
+			},
+		    layout: {
+				randomSeed: 123467890,
+				improvedLayout:false
+			}
+		};
+		var network = new vis.Network(container, data, options);
+		network.on("doubleClick", function (params) {
+			console.log(params);
+			if (params['nodes'].length == 0) {
+				// double-click on canvas
+				var toggled = container.classList.toggle('fullscreen');
+				console.log(toggled);
+			} else {
+				// double-click on node
+				window.location.href=window.location.href.replace('domains','details')+'#step1_request'+(params['nodes'][0]);
+			}
+		});
+		</script>
     </body>
 </html>
