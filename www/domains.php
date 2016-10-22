@@ -259,12 +259,15 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
 			$txtNodes = "// create node array\nvar nodes = [\n";
 			foreach ($requestMap->nodes as $id => $node) {
 				$label = $node['host'];
-				$size = 5 + (int)(($node['objectSize']/10000));
+				$size = 5 + (int)(sqrt($node['objectSize']/100));
 				$group = $node['contentType'];
 				$title = "<p>$label</p><p>".$node['responseCode']."<\/p>";
+				/* get everything after the last / */
 				$file = array_pop(explode('/',$node['url']));
+				/* now get everything before a ? */
+				$file = array_shift(explode('?',$file));
 				
-				$title = "<b>$file<\/b><p><table class=\'ttip\'><tr><td>Content Type:<\/td><td>".$node['contentType']."<\/td><\/tr><tr><td>Status Code:<\/td><td><b>".$node['responseCode']."<\/b><\/td><\/tr><tr><td>Size:<\/td><td>".$node['objectSize']."kB<\/td><\/tr><tr><td>TTFB:<\/td><td>".$node['ttfb_ms']."ms<\/td><\/tr><tr><td>Load Time:<\/td><td>".$node['load_ms']."ms<\/td><\/tr><\/table><\/p><p>(double-click to view object details)<\/p>";
+				$title = "<table class=\'ttip\'><tr><th colspan=2 align=center>$file</th></tr><tr><td>Content Type:<\/td><td>".$node['contentType']."<\/td><\/tr><tr><td>Status Code:<\/td><td><b>".$node['responseCode']."<\/b><\/td><\/tr><tr><td>Size:<\/td><td>".number_format($node['objectSize'])."kB<\/td><\/tr><tr><td>TTFB:<\/td><td>".$node['ttfb_ms']."ms<\/td><\/tr><tr><td>Load Time:<\/td><td>".$node['load_ms']."ms<\/td><\/tr><\/table><\/p><p>(double-click to view object details)<\/p>";
 				
 				$txtNodes .= "\n{id: $id, label: '$label', size: $size, group: '$group', title:'$title'},";
 
@@ -279,8 +282,9 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
 				$from = $edge['from'];
 				$to = $edge['to'];
 				$length = 1+(int)($requestMap->nodes[$to]['ttfb_ms']/10);
+				$title = "Request initiated by \'".$requestMap->nodes[$from]['host']."\' to \'".$requestMap->nodes[$to]['host']."\'. TTFB = ".$requestMap->nodes[$to]['ttfb_ms']."ms";
 				
-				$txtNodes .= "\n{from: $from, to: $to, length: $length},";
+				$txtNodes .= "\n{from: $from, to: $to, length: $length, title: \"$title\"},";
 			}
 			$txtNodes = rtrim($txtNodes,',');
 			$txtNodes .= "];\n";
@@ -313,16 +317,17 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
 				navigationButtons: true,
 				keyboard: true
 			},
-			physics: {
-				repulsion: {
-					centralGravity: 0
-				},
-				solver: 'repulsion',
-				stabilization: {
-					iterations: 100
+			physics:{
+				barnesHut: {
+				      gravitationalConstant: -1000,
+				      centralGravity: 0.3,
+				      springLength: 95,
+				      springConstant: 0.01,
+				      damping: 0.2,
+				      avoidOverlap: 0
 				}
-			},
-		    layout: {
+		   	},
+		    	layout: {
 				randomSeed: 123467890,
 				improvedLayout:false
 			}
