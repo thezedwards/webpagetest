@@ -249,7 +249,7 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
 				/* now get everything before a ? */
 				$file = array_shift(explode('?',$file));
 				
-				$title = "<table class=\'ttip\'><tr><th colspan=2 align=center>$file</th></tr><tr><td>Content Type:<\/td><td>".$node['contentType']."<\/td><\/tr><tr><td>Status Code:<\/td><td><b>".$node['responseCode']."<\/b><\/td><\/tr><tr><td>Size:<\/td><td>".number_format($node['objectSize'])."kB<\/td><\/tr><tr><td>TTFB:<\/td><td>".$node['ttfb_ms']."ms<\/td><\/tr><tr><td>Load Time:<\/td><td>".$node['load_ms']."ms<\/td><\/tr><\/table><\/p><p>(double-click to view object details)<\/p>";
+				$title = "<table class=\'ttip\'><tr><th colspan=2 align=center>$file</th></tr><tr><td>Host:</td><td>".$node['host']."</td></tr><tr><td>Content Type:<\/td><td>".$node['contentType']."<\/td><\/tr><tr><td>Status Code:<\/td><td><b>".$node['responseCode']."<\/b><\/td><\/tr><tr><td>Size:<\/td><td>".number_format($node['objectSize']/1000)."kB<\/td><\/tr><tr><td>TTFB:<\/td><td>".$node['ttfb_ms']."ms<\/td><\/tr><tr><td>Load Time:<\/td><td>".$node['load_ms']."ms<\/td><\/tr><\/table><\/p><p>(double-click to view object details)<\/p>";
 				
 				$txtNodes .= "\n{id: $id, label: '$label', size: $size, group: '$group', title:'$title'},";
 
