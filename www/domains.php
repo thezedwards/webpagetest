@@ -73,28 +73,9 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
 				width: 100%;
 				height: 480px;
 			}
-            .requestMap-container.fullscreen {
-				position: fixed;
-				top: 0;
-				right: 0;
-				bottom: 0;
-				left: 0;
-				height:100vh;
-				z-index:999;
-			}
-            .vis-network-tooltip {		
-				font-family: Century Gothic,sans-serif !IMPORTANT;
-			}
-			table.ttip {
-				border-spacing: 0;
-				border-collapse: collapse;
-			}
-			table.ttip td {
-				text-align:left;
-				padding:2px;
-			}
             <?php
             include __DIR__ . "/css/accordion.css";
+            include __DIR__ . "/css/requestmap.css";
             ?>
 			</style>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.min.css">
@@ -251,8 +232,9 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
             pieBytes.draw(bytes, {width: 450, height: 300, title: 'Bytes'});
         }
         </script>
+        <script type="text/javascript" src="js/requestmap.js"></script>
         <script>
-        <?php 
+		<?php 
 			/* array_keys($node) = url, host, full_url, objectSize, ttfb_ms, load_ms, responseCode, contentType, download_start, download_end, initiator*/
 			$requestMap = $firstViewResults->getStepResult(1)->getRequestMap();
 			
@@ -272,7 +254,7 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
 				$txtNodes .= "\n{id: $id, label: '$label', size: $size, group: '$group', title:'$title'},";
 
 			}
-            
+			
 			$txtNodes = rtrim($txtNodes,',');
 			$txtNodes .= "];\n";
 			echo $txtNodes;
@@ -281,7 +263,7 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
 			foreach ($requestMap->edges as $edge) {
 				$from = $edge['from'];
 				$to = $edge['to'];
-				$length = 1+(int)($requestMap->nodes[$to]['ttfb_ms']/10);
+				$length = 1+(int)sqrt($requestMap->nodes[$to]['ttfb_ms']);
 				$title = "Request initiated by \'".$requestMap->nodes[$from]['host']."\' to \'".$requestMap->nodes[$to]['host']."\'. TTFB = ".$requestMap->nodes[$to]['ttfb_ms']."ms";
 				
 				$txtNodes .= "\n{from: $from, to: $to, length: $length, title: \"$title\"},";
@@ -289,61 +271,8 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
 			$txtNodes = rtrim($txtNodes,',');
 			$txtNodes .= "];\n";
 			echo $txtNodes;
-			
 		?>
-		var container = document.getElementById('requestmap_visjs');
-		var data = { nodes: nodes, edges: edges };
-		var options = {
-			nodes: {
-				shape: 'dot',
-				size: 4,
-				borderWidthSelected: 5
-			},
-			edges: {
-				arrows: {
-					middle: {
-						enabled: true,
-						scaleFactor: 0.5
-					}
-				},
-				dashes: false,
-				hoverWidth: 2,
-				selectionWidth: 5,
-				font: {
-					align: 'bottom'
-				}
-			},
-			interaction: {
-				navigationButtons: true,
-				keyboard: true
-			},
-			physics:{
-				barnesHut: {
-				      gravitationalConstant: -1000,
-				      centralGravity: 0.3,
-				      springLength: 95,
-				      springConstant: 0.01,
-				      damping: 0.2,
-				      avoidOverlap: 0
-				}
-		   	},
-		    	layout: {
-				randomSeed: 123467890,
-				improvedLayout:false
-			}
-		};
-		var network = new vis.Network(container, data, options);
-		network.on("doubleClick", function (params) {
-			console.log(params);
-			if (params['nodes'].length == 0) {
-				// double-click on canvas
-				var toggled = container.classList.toggle('fullscreen');
-				console.log(toggled);
-			} else {
-				// double-click on node
-				window.location.href=window.location.href.replace('domains','details')+'#step1_request'+(params['nodes'][0]+1);
-			}
-		});
+		renderRequestmap(nodes,edges,'requestmap_visjs');
 		</script>
     </body>
 </html>
