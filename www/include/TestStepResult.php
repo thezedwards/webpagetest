@@ -350,6 +350,7 @@ class RequestMap {
   private $redirects = array();
   public $edges = array();
   public $nodes = array();
+  public $startNode = 0;
 
   public function __construct($requests) {
     $this->requests = $requests;
@@ -377,6 +378,8 @@ class RequestMap {
   }
   
   private function getNodes() {
+	  $first200 = false;
+	  $i = 0;
 	  foreach ($this->requests as $request) {
 		  $temp = array();
 		  $temp['url'] = $request['url'];
@@ -400,9 +403,13 @@ class RequestMap {
 					  $this->redirects[$location]=$request['full_url'];
 				  }
 			  }
+		  } else if (!$first200) {
+			  $first200 = true;
+			  $this->startNode = $i;
 		  }
 		  
 		  $this->nodes[] = $temp; 
+		  $i++;
 	  }
   }
 
@@ -415,7 +422,7 @@ class RequestMap {
 	  foreach ($this->nodes as $to_id => $to_node) {
 		  if ($to_node['initiator']['type']==null) continue;
 		  $edge = array(
-			  'from' => 0,
+			  'from' => $this->startNode,
 			  'to' => $to_id,
 			  'type' => 'other',
 		  );

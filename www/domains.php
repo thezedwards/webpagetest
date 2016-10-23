@@ -68,11 +68,6 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
             .breakdownFramePies td {
               padding: 0;
             }
-            .requestMap-container {
-				background-color: white;
-				width: 100%;
-				height: 480px;
-			}
             <?php
             include __DIR__ . "/css/accordion.css";
             include __DIR__ . "/css/requestmap.css";
@@ -237,19 +232,39 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
 		<?php 
 			/* array_keys($node) = url, host, full_url, objectSize, ttfb_ms, load_ms, responseCode, contentType, download_start, download_end, initiator*/
 			$requestMap = $firstViewResults->getStepResult(1)->getRequestMap();
+			$groupBy = 'thirdParty';
+			$p3 = new thirdparties();
+			
+			if (array_key_exists('groupBy', $_REQUEST)) $groupBy=$_REQUEST['groupBy'];
 			
 			$txtNodes = "// create node array\nvar nodes = [\n";
 			foreach ($requestMap->nodes as $id => $node) {
 				$label = $node['host'];
-				$size = 5 + (int)(sqrt($node['objectSize']/100));
-				$group = ContentType($node['contentType']);
+				$size = 10 + (int)(sqrt($node['objectSize']/100));
+				$tps = $p3->is3p($node['host']);
+				if ($tps) $category = $tps['category'];
+				else $category = 'Unknown';
+				
+				switch ($groupBy) {
+					case 'host':
+						$group = $node['host'];
+					break;
+					
+					case 'thirdParty':
+						$group = $category;
+						break;
+					default:
+					case 'contentType':
+						$group = ContentType($node['contentType']);
+					break;
+				}
 				$title = "<p>$label</p><p>".$node['responseCode']."<\/p>";
 				/* get everything after the last / */
 				$file = array_pop(explode('/',$node['url']));
 				/* now get everything before a ? */
 				$file = array_shift(explode('?',$file));
 				
-				$title = "<table class=\'ttip\'><tr><th colspan=2 align=center>$file</th></tr><tr><td>Host:</td><td>".$node['host']."</td></tr><tr><td>Content Type:<\/td><td>".$node['contentType']."<\/td><\/tr><tr><td>Status Code:<\/td><td><b>".$node['responseCode']."<\/b><\/td><\/tr><tr><td>Size:<\/td><td>".number_format($node['objectSize']/1000)."kB<\/td><\/tr><tr><td>TTFB:<\/td><td>".$node['ttfb_ms']."ms<\/td><\/tr><tr><td>Load Time:<\/td><td>".$node['load_ms']."ms<\/td><\/tr><\/table><\/p><p>(double-click to view object details)<\/p>";
+				$title = "<table class=\'ttip\'><tr><th colspan=2 align=center>$file</th></tr><tr><td>Category:</td><td>".$category."</td></tr><tr><td>Host:</td><td>".$node['host']."</td></tr><tr><td>Content Type:<\/td><td>".$node['contentType']."<\/td><\/tr><tr><td>Status Code:<\/td><td><b>".$node['responseCode']."<\/b><\/td><\/tr><tr><td>Size:<\/td><td>".number_format($node['objectSize']/1000)."kB<\/td><\/tr><tr><td>TTFB:<\/td><td>".$node['ttfb_ms']."ms<\/td><\/tr><tr><td>Load Time:<\/td><td>".$node['load_ms']."ms<\/td><\/tr><\/table><\/p><p>(double-click to view object details)<\/p>";
 				
 				$txtNodes .= "\n{id: $id, label: '$label', size: $size, group: '$group', title:'$title'},";
 
@@ -271,6 +286,35 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
 			$txtNodes = rtrim($txtNodes,',');
 			$txtNodes .= "];\n";
 			echo $txtNodes;
+			
+			class thirdparties {
+				public $domain3p;
+
+				function __construct($file = null) {
+					if (!$file) $file = getcwd().'/include/thirdparties.inc';
+					$this->domain3p = unserialize(file_get_contents($file));
+				}
+
+				private function str_gettsv($line) {
+					return str_getcsv($line,"\t");
+				}
+
+				function is3p($host) {
+					$keys = array_keys($this->domain3p);
+					if (in_array($host,$keys)) {
+						return $this->domain3p[$host];
+					} else {
+						$len = strlen($host);
+						foreach ($keys as $key) {
+							if ($key==substr($host,$len-strlen($key))) {
+								return $this->domain3p[$key];
+							}
+						}
+					}
+
+				}
+			}
+
 
 		?>
 		renderRequestmap(nodes,edges,'requestmap_visjs');

@@ -293,7 +293,6 @@ else
                                                   echo '</td>';
                                                   if($includeip)
                                                       echo '<td class="ip">' . $ip . '</td>';
-
                                                   if( $admin )
                                                   {
                                                       if( isset($testUID) )
@@ -302,20 +301,19 @@ else
                                                           echo '<td class="uid"></td>';
                                                       echo "<td class=\"count\">$count</td>";
                                                   }
+                                                 
                                                   $link = "/results.php?test=$guid";
                                                   if( FRIENDLY_URLS )
                                                       $link = "/result/$guid/";
                                                   if( !strncasecmp($guid, 'http:', 5) || !strncasecmp($guid, 'https:', 6) )
                                                       $link = $guid;
-
                                                   $labelTxt = $label;
                                                   if( mb_strlen($labelTxt) > 30 ) {
                                                       $labelTxt = mb_substr($labelTxt, 0, 27) . '...';
                                                   }
-
                                                   echo "<td title=\"$label\" class=\"label\">";
                                                   echo "<a href=\"$link\" id=\"label_$guid\">$labelTxt</a>&nbsp;";
-
+                                                  
                                                   // Only allow people to update labels if they are logged in
                                                   if ($user && class_exists("SQLite3")) {
                                                       echo '<a href="#" class="editLabel" data-test-guid="' . $guid . '" data-current-label="' . $label . '">(Edit)</a>';
