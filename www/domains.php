@@ -242,7 +242,7 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
 			foreach ($requestMap->nodes as $id => $node) {
 				$label = $node['host'];
 				$size = 5 + (int)(sqrt($node['objectSize']/100));
-				$group = normalizeMime($node['contentType']);
+				$group = ContentType($node['contentType']);
 				$title = "<p>$label</p><p>".$node['responseCode']."<\/p>";
 				/* get everything after the last / */
 				$file = array_pop(explode('/',$node['url']));
@@ -271,31 +271,6 @@ if (array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json') {
 			$txtNodes = rtrim($txtNodes,',');
 			$txtNodes .= "];\n";
 			echo $txtNodes;
-
-			function normalizeMime($mime) {
-				if(!$mime) return "Unknown";
-				$mime = strtolower($mime);
-				/* start with image */
-				if (strpos($mime,'image')) return "Image";
-				/* then Javascript */
-				if (strpos($mime,'javascript') || strpos($mime,'ecmascript')) return "Javascript";
-				/* CSS next */
-				if (strpos($mime,'css')) return "CSS";
-				/* Let's not forget HTML */
-				if (strpos($mime,'html')) return "HTML";
-				/* Oh crap there are fonts everywhere! */
-				if (strpos($mime,'font')) return "Font";
-				if (strpos($mime,'woff')) return "Font";
-				if (strpos($mime,'json')) return "JSON";
-				if (strpos($mime,'xml')) return "XML";
-				if (strpos($mime,'text')) return "Text";
-				if (strpos($mime,'octet')) return "Binary";
-				if (strpos($mime,'flash')) return "Flash";
-				if (strpos($mime,'video')) return "Video";
-				if (strpos($mime,'rss')) return "RSS";
-				if (strpos($mime,'text')) return "Text";
-				return "Unknown";
-			}
 
 		?>
 		renderRequestmap(nodes,edges,'requestmap_visjs');
